@@ -4,7 +4,7 @@ import os
 import latlonDistance
 import numpy
 from collections import namedtuple
-import GpxAnalyzeTools as gat
+import GpsAnalyzeTools as gat
 
 class GpxGeneTools:
     def __init__(self,gpsFile = os.path.abspath('.')+'\data_files\sample3.txt'):
@@ -15,7 +15,6 @@ class GpxGeneTools:
         # 定义一部分统计量，不需要可删除
         self.medianDailyPts = []    # 该列表中的每个元素，表示单个用户按天统计，45天的轨迹的gps点数的中位数
         self.countDays = []     # 统计每个用户有多少天（条）的轨迹是可用的
-
 
     # 按用户生成轨迹
     def geneByUser(self):
@@ -68,9 +67,9 @@ class GpxGeneTools:
                 if (cntTuple - cntTuplePrev >= 20):  # 如果单日轨迹点超过20个，才纳入考虑范围
                     listPerDay = tuples[cntTuplePrev:cntTuple]
                     cntTuplePrev = cntTuple
-                    gpxAT = gat.GpxAnalyzeTools(listPerDay) # 实例化一个 轨迹分析 对象
-                    pts = self.traceUserDay(gpxAT, t, subdir)
-                    del gpxAT # 用完就删，下个循环使用时重新实例化
+                    gpsAT = gat.GpsAnalyzeTools(listPerDay) # 实例化一个 轨迹分析 对象
+                    pts = self.traceUserDay(gpsAT, t, subdir)
+                    del gpsAT # 用完就删，下个循环使用时重新实例化
                     if (pts):
                         medianPtsTmp.append(pts)
                         cntDays += 1
@@ -79,15 +78,15 @@ class GpxGeneTools:
             print i
 
     # 分析用户单日GPS轨迹的空间、速度等属性，如满足要求，则生成相应.gpx文件
-    def traceUserDay(self,gpxAT, timeDate, subdir):
+    def traceUserDay(self,gpsAT, timeDate, subdir):
         # 空间+速度滤波
-        gpxAT.filterRangeBeijing()
-        if ( len(gpxAT.selectedPts) >= 15):
-            gpxAT.filterSpeed()
-            gpxAT.filterRangeMin()
+        gpsAT.filterRangeBeijing()
+        if ( len(gpsAT.selectedPts) >= 15):
+            gpsAT.filterSpeed()
+            gpsAT.filterRangeMin()
 
         # 如果滤波后点数满足要求，则生成gpx文件
-        if ( len(gpxAT.selectedPts) >= 10):
+        if ( len(gpsAT.selectedPts) >= 10):
             if (not os.path.exists(subdir)):  # 给每一个用户建立文件夹存储45天的轨迹
                 os.mkdir(subdir)
             format = '%Y-%m-%d %H:%M:%S'
@@ -96,9 +95,9 @@ class GpxGeneTools:
             dt = dt[:10]
             filepath = open(subdir + '\\' + dt + '.gpx', 'w')
             self.gpxPrefix(filepath, dt)
-            self.gpxTrkPt(filepath, gpxAT.selectedPts)
+            self.gpxTrkPt(filepath, gpsAT.selectedPts)
             self.gpxSuffix(filepath)
-            return len(gpxAT.selectedPts)
+            return len(gpsAT.selectedPts)
         else:
             return 0
 

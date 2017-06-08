@@ -39,7 +39,7 @@ class regionCodeDict:
         if (not key in dict.keys()):
             dict[key] = value
 
-    def getCate(self,dict,key,value): # 输入编号，获取区域名称。至多三次递归
+    def getRegion(self,dict,key,value): # 输入编号，获取区域名称。至多三次递归
         keyTmp = key[0:2]
         if(keyTmp+'x' in dict.keys()):
             value = dict[keyTmp + 'x']
@@ -47,28 +47,28 @@ class regionCodeDict:
             print 'Error: No such region!'
             return ''
 
-        if(keyTmp == '11' or keyTmp == '12' or keyTmp == '31' or keyTmp == '50' \
+        if(keyTmp == '11' or keyTmp == '12' or keyTmp == '31' or keyTmp == '50'
                        or keyTmp == '81' or keyTmp == '82'):
-            value_tmp = self.getCateSp(dict[keyTmp],key[3:],value)
+            value_tmp = self.getRegionSp(dict[keyTmp],key[3:],value)
         else:
-            value_tmp = self.getCateNorm(dict[keyTmp],key[2:],value)
+            value_tmp = self.getRegionNorm(dict[keyTmp],key[2:],value)
         if (value != value_tmp):  # 如果更底层的字典能找到相应的key-value，那么将底层于上层的value连接
             value = value + ':' + value_tmp
 
         return value
 
-    def getCateSp(self,dict,key,value): # 直辖市、特别行政区
+    def getRegionSp(self,dict,key,value): # 直辖市、特别行政区
         if (key in dict.keys()):
             value = dict[key]
         return value
 
-    def getCateNorm(self,dict,key,value):   # 一般省份。至多递归2次
+    def getRegionNorm(self,dict,key,value):   # 一般省份。至多递归2次
         keyTmp = key[0:2]
 
         if (keyTmp in dict.keys() and len(key) > 2):
             value = dict[keyTmp + 'x']  # 如果还没到第三级，先把该级的POI大类赋给value
             key = key[2:]
-            value_tmp = self.getCate(dict[keyTmp], key, value)
+            value_tmp = self.getRegion(dict[keyTmp], key, value)
             if (value != value_tmp):  # 如果更底层的字典能找到相应的key-value，那么将底层于上层的value连接
                 value = value + ':' + value_tmp
         elif (keyTmp in dict.keys()):
@@ -87,6 +87,7 @@ print str
 class poiDict:
     def __init__(self):
         self.dictPoi = {} # poi 字典
+        self.dictPoi = self.poiDictGene()
 
     def poiDictGene(self):
         codeFile = os.path.abspath('.') + '\data_files\\poiMap.txt'
@@ -106,6 +107,9 @@ class poiDict:
 
         print 'Poi dict Done'
         return self.dictPoi
+
+    def getPoi(self,key):
+        return self.dictPoi[key]
 
 # 用三级嵌套字典生成的POI类别字典；输入POI编号可读取相应类别
 class poiCateDict:
