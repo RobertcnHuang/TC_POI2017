@@ -1,11 +1,19 @@
 #encoding=utf-8
+# 提供分析gps轨迹的各类函数
+# filterRangeBeijing() 去除不在北京六环范围内的点
+# filterRangeMin() 判断轨迹的跨度是否足够大，如果跨度太小，则抛弃轨迹（返回一个空list）
+# filterSpeed() 去除速度不满足要求的点
 import time
 import os
 import latlonDistance
 import numpy
 from collections import namedtuple
 
-class GpsAnalyzeTools:
+<<<<<<< HEAD:GpsAnalyzeTools.py
+class gpsAnalyzeTools:
+=======
+class GpxAnalyzeTools:
+>>>>>>> parent of e6ec028... new edition:GpxAnalyzeTools.py
     def __init__(self,listPerDay):
         #self.PtsDaily = listPerDay
         self.selectedLat, self.selectedLon, self.selectedTime, self.selectedPts, self.marks= [],[],[],[],[]
@@ -30,21 +38,22 @@ class GpsAnalyzeTools:
         self.selectedLon = [self.selectedLon[i] for i in self.marks]
         self.marks = [] # 清零marks供下次使用
 
-    def filterRangeMin(self):
-        if (  latlonDistance.distance([max(self.selectedLat), max(self.selectedLon)], [min(self.selectedLat), min(self.selectedLon)]) < 2 ):
+    #  如果轨迹跨越的范围不够大，则抛弃轨迹
+    def filterRangeMin(self,kmRange = 2):
+        if (  latlonDistance.distance([max(self.selectedLat), max(self.selectedLon)], [min(self.selectedLat), min(self.selectedLon)]) < kmRange ):
             self.selectedPts = []
 
-    # 速度滤波的增强版，满足速度要求之外(150km/h)，需要满足每次两个移动点之间大于100米
-    # TODO（之后可用时鸿志的聚类算法？）
-    def filterSpeed(self):
-        speedMax = 150
+    # 速度滤波的增强版，满足速度要求之外(120km/h)，需要满足每次两个移动点之间大于100米
+    # 事实上，120km 的阈值可能偏高，不过可以为定位偏差留一些裕量出来
+    def filterSpeed(self,speedMax = 120,distMin = 0.1):
+        #speedMax = 150
         self.marks.append(0)    # 起始点总是要取到的
         ptPre = [self.selectedLat[0],self.selectedLon[0],self.selectedTime[0]]
         for i, lat in enumerate(self.selectedLat[1:]):
             dist = latlonDistance.distance([ptPre[0],ptPre[1]],[self.selectedLat[i],self.selectedLon[i]])
             # TODO 准确考虑同一分钟内的gps点。现在暂且将时间间隔设为60s
             t = ( self.selectedTime[i] - ptPre[2] )/3600 if self.selectedTime[i] - ptPre[2] > 0 else 60
-            if (dist > 0.1 and dist/t <= speedMax):
+            if (dist > distMin and dist/t <= speedMax):
                 ptPre = [self.selectedLat[i],self.selectedLon[i],self.selectedTime[i]]
                 self.marks.append(i)
         self.selectedPts = [self.selectedPts[i] for i in self.marks]

@@ -1,13 +1,14 @@
 #encoding=utf-8
+<<<<<<< HEAD:debugMain.py
+# debug用的，没啥用了
 import time
 import os
 import latlonDistance
-import numpy
+import numpy as np
 from collections import namedtuple
-import GpsAnalyzeTools as gat
-import GpxGeneTools as ggt
-import DictGeneTools as dgt
-import PoiAnalyzeTools as pat
+import gpsAnalyzeTools as gat
+import dictGeneTools as dgt
+import poi2cate as pat
 
 class poiMatchingMain:
     def __init__(self,gpsFile = os.path.abspath('.')+'\data_files\sample3.txt'):
@@ -31,7 +32,6 @@ class poiMatchingMain:
             cntTuple, cntTuplePrev = 0, 0   # 计数: 1.当前gps点序号 2.前一天最后一个gps点序号
 
             ptTmp = self.gpsPt._make(tuples[0].split('|'))  # 列表方式初始化namedtuple
-            poiAT = pat.PoiAnalyzeTools(self.poiDictTool)
             # 以日为单位，分析用户轨迹
             for t in range(self.timeStart, self.timeEnd, self.dayIntvl):
                 # 计数单日gps点数量
@@ -45,14 +45,14 @@ class poiMatchingMain:
                 if (cntTuple - cntTuplePrev >= 20):  # 如果单日轨迹点超过20个，才纳入考虑范围
                     listPerDay = tuples[cntTuplePrev:cntTuple]
                     cntTuplePrev = cntTuple
-                    gpsAT = gat.GpsAnalyzeTools(listPerDay) # 实例化一个 轨迹分析 对象
+                    gpsAT = gat.gpsAnalyzeTools(listPerDay) # 实例化一个 轨迹分析 对象
                     gpsAT.filterRangeBeijing()
                     if (len(gpsAT.selectedPts) >= 15):
                         gpsAT.filterSpeed()
                         gpsAT.filterRangeMin()
 
                     if ( len(gpsAT.selectedPts) >= 10): # 只关注点数足够的轨迹
-                        listPerDay = poiAT.poi2cate(gpsAT.selectedPts)
+                        listPerDay = pat.poi2cate(gpsAT.selectedPts,self.poiDictTool)
                         print listPerDay
                     del gpsAT  # 用完就删，下个循环使用时重新实例化
                     print listPerDay
@@ -63,18 +63,11 @@ poiMM = poiMatchingMain()
 poiMM.main()
 '''
 # 按用户/日生成轨迹
+=======
+import GpxGeneTools as ggt
+
+>>>>>>> parent of e6ec028... new edition:main.py
 tool =  ggt.GpxGeneTools()
+#tool.geneByUser()
 tool.geneByUserDay()
 print str(sum(tool.countDays)) +' available traces in total'
-'''
-'''
-rgGene = dgt.regionCodeDict()
-dict_region = rgGene.regionCodeGene()
-
-poiGene = dgt.poiDict()
-dict_poi = poiGene.poiDictGene()
-
-cateGene = dgt.poiCateDict()
-dict_poiCate = cateGene.poiCateGene()
-print 'debug'
-'''

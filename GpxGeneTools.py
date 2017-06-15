@@ -1,12 +1,17 @@
 #encoding=utf-8
+# 提供了生成.gpx格式文件的函数，生成的.gpx轨迹文件，主要用于在GpxTrackEditor中分析、研究轨迹
 import time
 import os
 import latlonDistance
 import numpy
 from collections import namedtuple
-import GpsAnalyzeTools as gat
+<<<<<<< HEAD
+import gpsAnalyzeTools as gat
+=======
+import GpxAnalyzeTools as gat
+>>>>>>> parent of e6ec028... new edition
 
-class GpxGeneTools:
+class gpxGeneTools:
     def __init__(self,gpsFile = os.path.abspath('.')+'\data_files\sample3.txt'):
         self.gpsFile = gpsFile
         self.timeStart = int(time.mktime(time.strptime('2016-09-17 00:00:00', '%Y-%m-%d %H:%M:%S')))
@@ -15,6 +20,7 @@ class GpxGeneTools:
         # 定义一部分统计量，不需要可删除
         self.medianDailyPts = []    # 该列表中的每个元素，表示单个用户按天统计，45天的轨迹的gps点数的中位数
         self.countDays = []     # 统计每个用户有多少天（条）的轨迹是可用的
+
 
     # 按用户生成轨迹
     def geneByUser(self):
@@ -67,9 +73,9 @@ class GpxGeneTools:
                 if (cntTuple - cntTuplePrev >= 20):  # 如果单日轨迹点超过20个，才纳入考虑范围
                     listPerDay = tuples[cntTuplePrev:cntTuple]
                     cntTuplePrev = cntTuple
-                    gpsAT = gat.GpsAnalyzeTools(listPerDay) # 实例化一个 轨迹分析 对象
-                    pts = self.traceUserDay(gpsAT, t, subdir)
-                    del gpsAT # 用完就删，下个循环使用时重新实例化
+                    gpxAT = gat.GpxAnalyzeTools(listPerDay) # 实例化一个 轨迹分析 对象
+                    pts = self.traceUserDay(gpxAT, t, subdir)
+                    del gpxAT # 用完就删，下个循环使用时重新实例化
                     if (pts):
                         medianPtsTmp.append(pts)
                         cntDays += 1
@@ -78,15 +84,15 @@ class GpxGeneTools:
             print i
 
     # 分析用户单日GPS轨迹的空间、速度等属性，如满足要求，则生成相应.gpx文件
-    def traceUserDay(self,gpsAT, timeDate, subdir):
+    def traceUserDay(self,gpxAT, timeDate, subdir):
         # 空间+速度滤波
-        gpsAT.filterRangeBeijing()
-        if ( len(gpsAT.selectedPts) >= 15):
-            gpsAT.filterSpeed()
-            gpsAT.filterRangeMin()
+        gpxAT.filterRangeBeijing()
+        if ( len(gpxAT.selectedPts) >= 15):
+            gpxAT.filterSpeed()
+            gpxAT.filterRangeMin()
 
         # 如果滤波后点数满足要求，则生成gpx文件
-        if ( len(gpsAT.selectedPts) >= 10):
+        if ( len(gpxAT.selectedPts) >= 10):
             if (not os.path.exists(subdir)):  # 给每一个用户建立文件夹存储45天的轨迹
                 os.mkdir(subdir)
             format = '%Y-%m-%d %H:%M:%S'
@@ -95,14 +101,28 @@ class GpxGeneTools:
             dt = dt[:10]
             filepath = open(subdir + '\\' + dt + '.gpx', 'w')
             self.gpxPrefix(filepath, dt)
-            self.gpxTrkPt(filepath, gpsAT.selectedPts)
+            self.gpxTrkPt(filepath, gpxAT.selectedPts)
             self.gpxSuffix(filepath)
-            return len(gpsAT.selectedPts)
+            return len(gpxAT.selectedPts)
         else:
             return 0
 
-    # .gpx生成工具
-    def gpxPrefix(self,filepath, fileName):  # 生成gpx文件的前缀
+    # 单纯生成轨迹，不分析
+    def traceUserDaySimple(self,listPerDay,timeDate,subdir):
+        if (not os.path.exists(subdir)):  # 给每一个用户建立文件夹存储45天的轨迹
+            os.mkdir(subdir)
+        format = '%Y-%m-%d %H:%M:%S'
+        timeDate = time.localtime(timeDate)  # 轨迹所对应的日期
+        dt = time.strftime(format, timeDate)
+        dt = dt[:10]
+        filepath = open(subdir + '\\' + dt + '.gpx', 'w')
+        self.gpxPrefix(filepath, dt)
+        self.gpxTrkPt(filepath, listPerDay)
+        self.gpxSuffix(filepath)
+        return len(listPerDay),filepath
+
+    # .gpx生成工具：生成gpx文件的前缀
+    def gpxPrefix(self,filepath, fileName):
         writeList = ['<?xml version="1.0" encoding="UTF-8" standalone="no" ?>\n', \
                      '<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1"  creator="Oregon 400t" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd"> \n']
         writeList.append('\t<metadata>\n')
@@ -114,7 +134,8 @@ class GpxGeneTools:
         filepath.writelines(writeList)
         filepath.flush()
 
-    def gpxTrkPt(self,filepath, tuples):  # 将一段轨迹点写入gpx文件
+    # .gpx生成工具：将一段轨迹点写入gpx文件
+    def gpxTrkPt(self,filepath, tuples):
         for mytuple in tuples:
             gpsPt = namedtuple('gpsPt',['t','j','w','POIs','rg']) # 时间|经度|维度|0~n个POI|行政区域
             ptTmp = gpsPt._make(mytuple.split('|'))     # 列表方式初始化namedtuple
@@ -127,7 +148,8 @@ class GpxGeneTools:
             filepath.writelines(writeList)
             filepath.flush()
 
-    def gpxSuffix(self,filepath):  # 添加文件后缀，并关闭文件
+    # .gpx生成工具：添加文件后缀，并关闭文件
+    def gpxSuffix(self,filepath):
         lineTmp = '\t\t</trkseg>\n\t</trk>\n</gpx>'
         filepath.writelines(lineTmp)
         filepath.close()

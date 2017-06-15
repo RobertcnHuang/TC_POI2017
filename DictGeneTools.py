@@ -1,6 +1,9 @@
 #encoding=utf-8
+# 包含3个类，用于读取存储静态数据的文本文件，并生成相应的字典（表）
+# class regionCodeDict ： 生成 区域编号-XX省_XX市_XX区 的映射表
+# class poiDict ：直接哈希生成 poi编号-poi详细信息 的映射表 （这个是现阶段比较多用到的）
+# class poiCateDict：生成 POI类别编号-POI类别汉字名称 的映射表
 import os
-# 该文件中的类，用于读取存储静态数据的文本文件，并生成相应的字典（表）
 
 # 用三级嵌套字典生成的区域编号字典；输入编号可获取区域名称
 class regionCodeDict:
@@ -17,7 +20,7 @@ class regionCodeDict:
             linelist = line.split('\t')
             key_1st = linelist[3][0:2]  # 前两位，省区编号
             self.geneDictHigh(self.dict_1st,key_1st,linelist[0])    # 构造第一级key - value对
-            if(key_1st == '11' or key_1st == '12' or key_1st == '31' or key_1st == '50' \
+            if(key_1st == '11' or key_1st == '12' or key_1st == '31' or key_1st == '50'
                        or key_1st == '81' or key_1st == '82'): # 直辖市和特别行政区是特例
                 key_2nd = linelist[5][3:]
                 self.geneDictLow(self.dict_1st[key_1st],key_2nd,linelist[2])    # 直辖市、特别行政区直接构造底层 key - value对
@@ -39,7 +42,7 @@ class regionCodeDict:
         if (not key in dict.keys()):
             dict[key] = value
 
-    def getRegion(self,dict,key,value): # 输入编号，获取区域名称。至多三次递归
+    def getCate(self,dict,key,value): # 输入编号，获取区域名称。至多三次递归
         keyTmp = key[0:2]
         if(keyTmp+'x' in dict.keys()):
             value = dict[keyTmp + 'x']
@@ -47,28 +50,28 @@ class regionCodeDict:
             print 'Error: No such region!'
             return ''
 
-        if(keyTmp == '11' or keyTmp == '12' or keyTmp == '31' or keyTmp == '50'
+        if(keyTmp == '11' or keyTmp == '12' or keyTmp == '31' or keyTmp == '50' \
                        or keyTmp == '81' or keyTmp == '82'):
-            value_tmp = self.getRegionSp(dict[keyTmp],key[3:],value)
+            value_tmp = self.getCateSp(dict[keyTmp],key[3:],value)
         else:
-            value_tmp = self.getRegionNorm(dict[keyTmp],key[2:],value)
+            value_tmp = self.getCateNorm(dict[keyTmp],key[2:],value)
         if (value != value_tmp):  # 如果更底层的字典能找到相应的key-value，那么将底层于上层的value连接
             value = value + ':' + value_tmp
 
         return value
 
-    def getRegionSp(self,dict,key,value): # 直辖市、特别行政区
+    def getCateSp(self,dict,key,value): # 直辖市、特别行政区
         if (key in dict.keys()):
             value = dict[key]
         return value
 
-    def getRegionNorm(self,dict,key,value):   # 一般省份。至多递归2次
+    def getCateNorm(self,dict,key,value):   # 一般省份。至多递归2次
         keyTmp = key[0:2]
 
         if (keyTmp in dict.keys() and len(key) > 2):
             value = dict[keyTmp + 'x']  # 如果还没到第三级，先把该级的POI大类赋给value
             key = key[2:]
-            value_tmp = self.getRegion(dict[keyTmp], key, value)
+            value_tmp = self.getCate(dict[keyTmp], key, value)
             if (value != value_tmp):  # 如果更底层的字典能找到相应的key-value，那么将底层于上层的value连接
                 value = value + ':' + value_tmp
         elif (keyTmp in dict.keys()):
@@ -87,7 +90,6 @@ print str
 class poiDict:
     def __init__(self):
         self.dictPoi = {} # poi 字典
-        self.dictPoi = self.poiDictGene()
 
     def poiDictGene(self):
         codeFile = os.path.abspath('.') + '\data_files\\poiMap.txt'
@@ -107,9 +109,6 @@ class poiDict:
 
         print 'Poi dict Done'
         return self.dictPoi
-
-    def getPoi(self,key):
-        return self.dictPoi[key]
 
 # 用三级嵌套字典生成的POI类别字典；输入POI编号可读取相应类别
 class poiCateDict:
@@ -154,7 +153,7 @@ class poiCateDict:
         if (not key in dict.keys()):
             dict[key] = value
 
-    def getCate(self,dict,key,value): # 输入编号，获取POI类别名称。至多3次递归
+    def getCate(self,dict,key,value): # 输入 [POI类别字典,poi编号，获取POI类别名称。至多3次递归
         keyTmp = key[0:2]
 
         if(keyTmp in dict.keys() and len(key)>2):
