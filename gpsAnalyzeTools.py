@@ -9,11 +9,7 @@ import latlonDistance
 import numpy
 from collections import namedtuple
 
-<<<<<<< HEAD:GpsAnalyzeTools.py
 class gpsAnalyzeTools:
-=======
-class GpxAnalyzeTools:
->>>>>>> parent of e6ec028... new edition:GpxAnalyzeTools.py
     def __init__(self,listPerDay):
         #self.PtsDaily = listPerDay
         self.selectedLat, self.selectedLon, self.selectedTime, self.selectedPts, self.marks= [],[],[],[],[]

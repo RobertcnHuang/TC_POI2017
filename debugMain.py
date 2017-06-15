@@ -1,5 +1,4 @@
 #encoding=utf-8
-<<<<<<< HEAD:debugMain.py
 # debug用的，没啥用了
 import time
 import os
@@ -63,11 +62,18 @@ poiMM = poiMatchingMain()
 poiMM.main()
 '''
 # 按用户/日生成轨迹
-=======
-import GpxGeneTools as ggt
-
->>>>>>> parent of e6ec028... new edition:main.py
 tool =  ggt.GpxGeneTools()
-#tool.geneByUser()
 tool.geneByUserDay()
 print str(sum(tool.countDays)) +' available traces in total'
+'''
+'''
+rgGene = dgt.regionCodeDict()
+dict_region = rgGene.regionCodeGene()
+
+poiGene = dgt.poiDict()
+dict_poi = poiGene.poiDictGene()
+
+cateGene = dgt.poiCateDict()
+dict_poiCate = cateGene.poiCateGene()
+print 'debug'
+'''

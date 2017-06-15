@@ -14,7 +14,7 @@ class clusterStruct:
         self.HasPoi = 1 if len(self.ptWithPoi) > 0 else 0  # 指示该聚合点中的gps点是否含有POI信息
         self.timeHead = self.getUnixTime(self.ptAll[0])     # 簇中第一个点的采样时间
         self.timeTail = self.getUnixTime(self.ptAll[-1])    # 最后一个点的采样时间
-        print self.HasPoi
+        #print self.HasPoi
 
     # 判断该聚合点是真团簇（点数大于等于DBSCAN的min_Point），还是伪团簇（噪声点）
     def isCluster(self):

@@ -2,7 +2,7 @@
 # 用于将某点所关联的POI编号，转换为POI类别编号
 # dictPoi: poi编号-poi详细信息 字典
 
-def poi2cate(self,listDay,dictPoi):
+def poi2cate(listDay,dictPoi):
     listNew = []
     for i, pt in enumerate(listDay):
         pt = pt.split('|')

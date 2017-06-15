@@ -17,13 +17,16 @@ import gpxGeneTools as ggt
 import pointsMap as PM
 import calcAngle as CA
 import clusterStruct as clst
+import dictGeneTools as dgt
+import poi2cate as p2c
 
-class stayPointCluster:
+class pointCluster:
     def __init__(self, gpsFile=os.path.abspath('.') + '\data_files\sample3.txt'):
         self.gpsFile = gpsFile
         self.timeStart = int(time.mktime(time.strptime('2016-09-17 00:00:00', '%Y-%m-%d %H:%M:%S')))
         self.timeEnd = int(time.mktime(time.strptime('2016-11-01 00:00:00', '%Y-%m-%d %H:%M:%S')))
         self.dayIntvl = 86400  # 一天的时间
+        self.dictPoi = dgt.poiDict()
 
     # 主程序
     def main(self):
@@ -71,6 +74,13 @@ class stayPointCluster:
                         resultCluster = self.spatialCluster(gpsAT.selectedLon,gpsAT.selectedLat)
                         clstList = self.seqtialCluster(gpsAT.selectedPts,resultCluster)
                         clstListOut = self.angleFilter(clstList)
+
+                        for i,clst in enumerate(clstListOut):
+                            clst.ptAll = p2c.poi2cate(clst.ptAll,self.dictPoi)
+                            if( clst.hasPoi() ):
+                                clst.ptWithPoi = p2c.poi2cate(clst.ptWithPoi, self.dictPoi)
+
+                                # 此时的clstListOut 为前级输出，在此添加HMM的代码
 
                         # print 'spatial cluster num = %d, seq cluster num = %d, angle cluster num = %d'%(max(resultCluster)+1, len(clstList), len(clstListOut))
                         # print resultCluster
@@ -147,5 +157,5 @@ class stayPointCluster:
 
         return filteredList
 
-sPC = stayPointCluster()
+sPC = pointCluster()
 sPC.main()
