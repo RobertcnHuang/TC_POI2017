@@ -36,17 +36,17 @@ class gpsAnalyzeTools:
 
     #  如果轨迹跨越的范围不够大，则抛弃轨迹
     def filterRangeMin(self,kmRange = 2):
-        if (  latlonDistance.distance([max(self.selectedLat), max(self.selectedLon)], [min(self.selectedLat), min(self.selectedLon)]) < kmRange ):
+        if (  latlonDistance.distance([max(self.selectedLon), max(self.selectedLat)], [min(self.selectedLon), min(self.selectedLat)]) < kmRange ):
             self.selectedPts = []
 
-    # 速度滤波的增强版，满足速度要求之外(120km/h)，需要满足每次两个移动点之间大于100米
+    # 速度滤波的增强版，满足速度要求之外(120km/h)，需要满足每次两个移动点之间大于20米
     # 事实上，120km 的阈值可能偏高，不过可以为定位偏差留一些裕量出来
-    def filterSpeed(self,speedMax = 120,distMin = 0.1):
+    def filterSpeed(self,speedMax = 120,distMin = 0.02):
         #speedMax = 150
         self.marks.append(0)    # 起始点总是要取到的
         ptPre = [self.selectedLat[0],self.selectedLon[0],self.selectedTime[0]]
         for i, lat in enumerate(self.selectedLat[1:]):
-            dist = latlonDistance.distance([ptPre[0],ptPre[1]],[self.selectedLat[i],self.selectedLon[i]])
+            dist = latlonDistance.distance([ptPre[0],ptPre[1]],[self.selectedLon[i],self.selectedLat[i]])
             # TODO 准确考虑同一分钟内的gps点。现在暂且将时间间隔设为60s
             t = ( self.selectedTime[i] - ptPre[2] )/3600 if self.selectedTime[i] - ptPre[2] > 0 else 60
             if (dist > distMin and dist/t <= speedMax):
