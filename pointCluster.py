@@ -38,69 +38,68 @@ class pointCluster:
         if (not os.path.exists(dirTrace)):
             os.mkdir(dirTrace)
         gpxGT = ggt.gpxGeneTools()
+        allUserPoiPt = [] # 记录全部用户的全部poi点，每一个用户的poi点是一个list
 
         for i, line in enumerate(lines):
             line = line.strip('\n')  # 每行的换行符必须去掉，否则会报错
-            tuples = line.split(';')
-            userID = tuples[0][0:32]
-            tuples[0] = tuples[0][33:]
-            ptTmp = tuples[0].split('|')
+            gpsPtsPerUser = line.split(';')
+            userID = gpsPtsPerUser[0][0:32]
+            gpsPtsPerUser[0] = gpsPtsPerUser[0][33:]
+            ptTmp = gpsPtsPerUser[0].split('|')
             cntTuple, cntTuplePrev = 0, 0  # 计数: 1.当前gps点序号 2.前一天最后一个gps点序号
+            userPoiAll = [] # 双层list，里层的是用户单日的poi list
+
             for t in range(self.timeStart, self.timeEnd, self.dayIntvl):
                 # Part1. 切分为 用户/日, 并计数单日gps点数量
                 while t <= time.mktime(time.strptime('2016'+ptTmp[0], '%Y%m%d%H%M')) < t + self.dayIntvl:
                     cntTuple += 1
-                    if cntTuple <= len(tuples) - 1:
-                        ptTmp = tuples[cntTuple].split('|')
+                    if cntTuple <= len(gpsPtsPerUser) - 1:
+                        ptTmp = gpsPtsPerUser[cntTuple].split('|')
                     else:
                         break
 
                 # Part2. 根据点数规模、速度、覆盖范围等因素，对单日轨迹进行筛选预处理
-                if (cntTuple - cntTuplePrev >= 50):  # 如果单日轨迹点超过20个，才纳入考虑范围
-                    listPerDay = tuples[cntTuplePrev:cntTuple]
+                if (cntTuple - cntTuplePrev >= 20):  # 如果单日轨迹点超过20个，才纳入考虑范围
+                    listPerDay = gpsPtsPerUser[cntTuplePrev:cntTuple]
                     cntTuplePrev = cntTuple
                     gpsAT = gat.gpsAnalyzeTools(listPerDay) # 实例化一个 轨迹分析 对象
                     gpsAT.filterRangeBeijing()
-                    if (len(gpsAT.selectedPts) >= 40):
+                    if (len(gpsAT.selectedPts) >= 15): # 15
                         gpsAT.filterSpeed(120,200)
                         gpsAT.filterRangeMin()
 
                     # Part3. 核心部分：空间、序列聚类，及角度滤波
-                    if ( len(gpsAT.selectedPts) >= 30): # 只关注点数足够的轨迹
-                        # subdir = dirTrace + '\\' + userID
-                        # l,filepath = gpxGT.traceUserDaySimple(gpsAT.selectedPts,t,subdir)
-                        # procOpen = '\"' + 'C:\Program Files (x86)\GPS Track Editor\GpsTrackEditor.exe' + '\" ' + filepath.name
-                        # subprocess.Popen(procOpen)    # 调用外部可视化软件，将上方路径替换为本地安装GpsTrackEditor的路径即可
+                    if ( len(gpsAT.selectedPts) >= 10): # 只关注点数足够的轨迹 10
+                        #self.showTrack(dirTrace, userID, gpxGT, gpsAT.selectedPts, t)
                         resultCluster = self.spatialCluster(gpsAT.selectedLon,gpsAT.selectedLat)
                         clstList = self.seqtialCluster(gpsAT.selectedPts,resultCluster)
                         clstListOut = self.angleFilter(clstList)
 
+                        # # 输出聚类后的轨迹.gpx
+                        # gpsList = []
+                        # for clst in clstListOut:
+                        #     gpsTmp = clst.ptAll[0][0:8]+'|'+ str(clst.center[0]) + '|' + str(clst.center[1]) +'||'
+                        #     gpsList.append(gpsTmp)
+                        #self.showTrack(dirTrace, userID+'CLST', gpxGT, gpsList, t)
+
+                        # 这个循环输出的clstListOut 为前级输出，在此添加HMM等后续的代码
                         for i,clst in enumerate(clstListOut):
                             clst.ptAll = p2c.poi2cate(clst.ptAll,self.dictPoi)
                             if( clst.hasPoi() ):
                                 clst.ptWithPoi = p2c.poi2cate(clst.ptWithPoi, self.dictPoi)
 
-                                # 此时的clstListOut 为前级输出，在此添加HMM的代码
+                        # 记录用户单日产生的poi，存在一个list中
+                        userPoiAll.append(self.extractPoiPt(clstListOut))
 
-                        # print 'spatial cluster num = %d, seq cluster num = %d, angle cluster num = %d'%(max(resultCluster)+1, len(clstList), len(clstListOut))
-                        # print resultCluster
-                        # print gpsAT.selectedLat
-                        '''
-                    # 初始版本的聚类结果可视化
-                    numColor = max(resultCluster) + 1
-                    colors = cm.rainbow(np.linspace(0, 1, numColor))
-
-                    fg = plt.figure()
-                    #plt.clf()
-                    resultCluster = np.array(resultCluster)
-                    idx = list(np.where(resultCluster == 0))
-                    plt.scatter(matLon[idx], matLat[idx], color='black')
-                    for i in range(1,numColor):
-                        idx = list(np.where(resultCluster == i))
-                        plt.scatter(matLon[idx], matLat[idx], color=colors[i])
-                    plt.show()
-                    '''
                     del gpsAT  # 用完就删，下个循环使用时重新实例化
+
+                self.savePoiPtPerUser(userPoiAll, i)
+
+            #allUserPoiPt.append(userPoiPts)
+
+        print len(allUserPoiPt)
+        print("all done")
+        return allUserPoiPt
 
     # 空间聚类（DBSCAN）
     # 输入：轨迹点的经纬度坐标，（DBSCAN的参数）
@@ -108,8 +107,8 @@ class pointCluster:
     def spatialCluster(self,lonList,latList,min_points = 2, eps = 0.0018):
         matLonLat = np.matrix([lonList, latList])
         resultCluster = dbscan(matLonLat, eps, min_points)
-        # 聚类结果可视化，可注释掉
-        PM.points_map(np.transpose(matLonLat), resultCluster)
+        # # 聚类结果可视化，可注释掉
+        #PM.points_map(np.transpose(matLonLat), resultCluster)
         return resultCluster
 
     # 序列聚类（将空间聚类的结果结合时序信息，对空间聚类做拆分）
@@ -157,5 +156,42 @@ class pointCluster:
 
         return filteredList
 
-sPC = pointCluster()
-sPC.main()
+    # 从一个团簇中提取含有poi的gps点: 输入一个cluster的list，输出一个含有poi的gps点的list
+    def extractPoiPt(self,clstList):
+        poiList = []
+        for clst in clstList:
+            if(clst.hasPoi()):
+                poiList.extend(clst.ptWithPoi)
+        return poiList
+
+    # 将gps轨迹保存至subdir，并调用gpstrackEditor.exe显示轨迹，主要用于聚类代码的调试
+    def showTrack(self,dir,userID,gpxGT,ptList,time):
+        subdir = dir + '\\' + userID
+        l,filepath = gpxGT.traceUserDaySimple(ptList,time,subdir)
+        procOpen = '\"' + 'C:\Program Files (x86)\GPS Track Editor\GpsTrackEditor.exe' + '\" ' + filepath.name
+        subprocess.Popen(procOpen)    # 调用外部可视化软件，将上方路径替换为本地安装GpsTrackEditor的路径即可
+
+    def savePoiPtPerUser(self, clstListList, userNumber):
+        UserPoiPts = os.path.abspath('.') + '\PoiPtPerUser' + '\\' + str(userNumber)
+        if (not os.path.exists(UserPoiPts)):
+            os.mkdir(UserPoiPts)
+
+        # 每个用户文件的路径名称
+        userfilepath = UserPoiPts + '\\' + '.npy'
+        np.save(userfilepath, clstListList)
+        return "Save ok!"
+
+    def readPoiPtPerUser(self, userNumber, filename=os.path.abspath('.') + '\PoiPtPerUser'):
+        # userNumber 表示用户编号，即1,2,3,4,5....
+        userfilepath = filename + '\\' + str(userNumber) + '.npy'
+        UserPoiPts = np.load(userfilepath)
+        return UserPoiPts
+
+# console
+# import pointCluster
+# PC = pointCluster.pointCluster()
+# allUserPoiPts = PC.main()
+
+# pc = pointCluster()
+# allUserPoiPts = pc.main()
+
