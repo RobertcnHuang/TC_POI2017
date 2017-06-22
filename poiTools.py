@@ -71,6 +71,36 @@ class poiTools:
         UserPoiPts = np.load(userfilepath)
         return  UserPoiPts
 
+    #added by Huang X.Y.
+    # 输入：gps点的list
+    # 输出：gps点的list，poi编号替换为了poi类别编号
+    def poi2cate(self, listDay, dictPoi):
+        listNew = []
+        for i, pt in enumerate(listDay):
+            pt = pt.split('|')
+            pois = pt[3].split(',')
+            if (len(pois[0]) > 1):
+                for j, poi in enumerate(pois):
+                    poi = dictPoi.getPoi(poi)
+                    pois[j] = poi[1]
+                if (len(pois) > 1):
+                    pt[3] = ','.join(p for p in pois)
+                else:
+                    pt[3] = pois[0]
+            pt = '|'.join(ele for ele in pt)
+            listNew.append(pt)
+        return listNew
+
+    # added by Huang X.Y.
+    # 输入：poi类别编号的list
+    # 输出：重新分类后的poi类别编号的list
+    def poi2newCate(self,listPoi, dictReclass):
+        listReclass = []
+        for poi in listPoi:
+            newcate = dictReclass.getIdx(poi)
+            if (newcate >= 0):
+                listReclass.append(newcate)
+        return listReclass
 
 # myhmm = poiTools()
 # myhmm.ReadPoiData(602)

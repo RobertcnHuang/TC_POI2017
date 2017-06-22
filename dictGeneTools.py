@@ -9,6 +9,7 @@ import os
 class regionCodeDict:
     def __init__(self):
         self.dict_1st = {}  # 省、市、区的三级嵌套字典
+        self.dict_1st = self.regionCodeGene()
 
     def regionCodeGene(self):
         codeFile = os.path.abspath('.') + '\data_files\\region_code.conf'
@@ -103,7 +104,7 @@ class poiDict:
             except:
                 print line # for debug
             linelist = line.split('\t')
-            # key = poi ID, value = 区域编号，POI类别，POI名称
+            # key = poi ID, value = [ 区域编号，POI类别，POI名称 ]
             self.dictPoi[linelist[0]]= linelist[1:] # poi编号规则未知，直接用哈希表
             # if(i%100000 == 0):
             #     print i
@@ -118,6 +119,7 @@ class poiDict:
 class poiCateDict:
     def __init__(self):
         self.dictPoiCate = {}
+        self.dictPoiCate = self.poiCateGene()
 
     def poiCateGene(self):
         codeFile = os.path.abspath('.') + '\data_files\\poiCategories.txt'
@@ -170,6 +172,52 @@ class poiCateDict:
             value = dict[keyTmp]
 
         return value
+
+class reclassifyDict:
+    def __init__(self):
+        self.dictReclass = {}
+        self.dictReclass = self.reclassDictGene()
+        self.cateName = ['住宅','教育','游览健身','办公','休闲娱乐','医疗','酒店餐饮','交通']  # 共8类，但第一类倾向于抛弃
+
+    def reclassDictGene(self):
+        self.dictReclass['2810'] = 0    # 住宅
+        self.dictReclass['289900'] = 0
+        self.dictReclass['241000'] = 1  # 大学
+        self.dictReclass['22'] = 2       # 景点
+        self.dictReclass['18'] = 2       # 运动
+        self.dictReclass['2613'] = 2    # 地名：自然
+        self.dictReclass['281100'] = 3  # 产业园区
+        self.dictReclass['281200'] = 3  # 商务楼宇
+        self.dictReclass['261400'] = 3  # 地名：行政
+        self.dictReclass['261212'] = 3  # 地名：热点：行政
+        self.dictReclass['11'] = 3     # 公司
+        self.dictReclass['12'] = 3      # 机构团体
+        self.dictReclass['13'] = 4      # 购物
+        self.dictReclass['16'] = 4      # 娱乐休闲
+        self.dictReclass['23'] = 4      # 文化
+        self.dictReclass['261613'] = 4 # 地名：热点：商圈
+        self.dictReclass['20'] = 5        # 医疗
+        self.dictReclass['21'] = 6      # 酒店
+        self.dictReclass['10'] = 6      # 美食
+        self.dictReclass['27'] = 7      # 基础设施
+        return self.dictReclass
+
+    def getIdx(self,key):
+        value = -1
+        if( self.dictReclass.has_key(key[0:2]) ):
+            value = self.dictReclass[key[0:2]]
+        elif( self.dictReclass.has_key(key[0:4]) ):
+            value = self.dictReclass[key[0:4]]
+        elif( self.dictReclass.has_key(key) ):
+            value = self.dictReclass[key]
+        return value
+
+    def getName(self,key):
+        value = self.getIdx(key)
+        if(value >=0):
+            return self.cateName[value]
+        else:
+            return []
 
 ''' console commands, for debug
 import DictGeneTools
