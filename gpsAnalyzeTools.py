@@ -1,4 +1,5 @@
 #encoding=utf-8
+# @author: Huang X.Y.
 # 提供分析gps轨迹的各类函数
 # filterRangeBeijing() 去除不在北京六环范围内的点
 # filterRangeMin() 判断轨迹的跨度是否足够大，如果跨度太小，则抛弃轨迹（返回一个空list）
@@ -39,18 +40,18 @@ class gpsAnalyzeTools:
         if (  latlonDistance.distance([max(self.selectedLon), max(self.selectedLat)], [min(self.selectedLon), min(self.selectedLat)]) < kmRange ):
             self.selectedPts = []
 
-    # 速度滤波的增强版，满足速度要求之外(120km/h)，需要满足每次两个移动点之间大于20米
+    # 速度滤波的增强版，满足速度要求之外(120km/h)，需要满足每次两个移动点之间大于0.1 km # 可调整
     # 事实上，120km 的阈值可能偏高，不过可以为定位偏差留一些裕量出来
-    def filterSpeed(self,speedMax = 120,distMin = 0.02):
+    def filterSpeed(self,speedMax = 120,distMin = 0.1):
         #speedMax = 150
         self.marks.append(0)    # 起始点总是要取到的
-        ptPre = [self.selectedLat[0],self.selectedLon[0],self.selectedTime[0]]
+        ptPre = [self.selectedLon[0],self.selectedLat[0],self.selectedTime[0]]
         for i, lat in enumerate(self.selectedLat[1:]):
             dist = latlonDistance.distance([ptPre[0],ptPre[1]],[self.selectedLon[i],self.selectedLat[i]])
             # TODO 准确考虑同一分钟内的gps点。现在暂且将时间间隔设为60s
             t = ( self.selectedTime[i] - ptPre[2] )/3600 if self.selectedTime[i] - ptPre[2] > 0 else 60
             if (dist > distMin and dist/t <= speedMax):
-                ptPre = [self.selectedLat[i],self.selectedLon[i],self.selectedTime[i]]
+                ptPre = [self.selectedLon[i],self.selectedLat[i],self.selectedTime[i]]
                 self.marks.append(i)
         self.selectedPts = [self.selectedPts[i] for i in self.marks]
         self.selectedLat = [self.selectedLat[i] for i in self.marks]
