@@ -43,24 +43,23 @@ class poiTools:
                 tuples = data.split('|')
                 # print int(tuples[3].split(',')[0])
 
-                PoiDataPerUser.append([int(tuples[3].split(',')[0])])
+                # edited by hxy
+                PoiDataPerUser.append(tuples[3].split(',')[0])
 
             # print "User Number:", userNumber, "  PoiCate Number:", len(PoiDataPerUser), \
             #     '  Different PoiCate Number:', len(set(PoiDataPerUser))
 
-            print Lengths
-            print PoiDataPerUser
+            #print Lengths
+            #print PoiDataPerUser
 
         return  PoiDataPerUser, Lengths
 
 
     def savePoiPtPerUser(self, clstListList, userNumber):
         UserPoiPts = os.path.abspath('.') + '\PoiPtPerUser' + '\\' + str(userNumber)
-        if (not os.path.exists(UserPoiPts)):
-            os.mkdir(UserPoiPts)
 
         # 每个用户文件的路径名称
-        userfilepath = UserPoiPts + '\\'  + '.npy'
+        userfilepath = UserPoiPts + '.npy'
         np.save(userfilepath, clstListList)
         return "Save ok!"
 
