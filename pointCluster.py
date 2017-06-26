@@ -1,9 +1,11 @@
 #encoding=utf-8
+# @author: Huang X.Y.
 # Part1. 读取txt格式的原始数据，将其切分成以 用户/日 为单位的一段段数据
 # Part2. 对每段 用户/日 的数据，先根据点数规模、速度、覆盖范围等进行筛选预处理
 # Part3. 核心部分，进行空间、序列聚类，并做角度滤波，最终输出一个聚合点（团簇）的list
 from dbscan_master.dbscan import dbscan
 import time
+from itertools import *
 import os
 import numpy as np
 import subprocess
@@ -18,7 +20,8 @@ import pointsMap as PM
 import calcAngle as CA
 import clusterStruct as clst
 import dictGeneTools as dgt
-import poi2cate as p2c
+import poiTools as pt
+import csv
 
 class pointCluster:
     def __init__(self, gpsFile=os.path.abspath('.') + '\data_files\sample3.txt'):
@@ -27,6 +30,7 @@ class pointCluster:
         self.timeEnd = int(time.mktime(time.strptime('2016-11-01 00:00:00', '%Y-%m-%d %H:%M:%S')))
         self.dayIntvl = 86400  # 一天的时间
         self.dictPoi = dgt.poiDict()
+        self.mypt = pt.poiTools()
 
     # 主程序
     def main(self):
@@ -38,7 +42,9 @@ class pointCluster:
         if (not os.path.exists(dirTrace)):
             os.mkdir(dirTrace)
         gpxGT = ggt.gpxGeneTools()
+
         allUserPoiPt = [] # 记录全部用户的全部poi点，每一个用户的poi点是一个list
+        #allUserPoi = []  # 记录全部用户的全部纯poi，每一个用户的poi点是一个list
 
         for i, line in enumerate(lines):
             line = line.strip('\n')  # 每行的换行符必须去掉，否则会报错
@@ -59,46 +65,47 @@ class pointCluster:
                         break
 
                 # Part2. 根据点数规模、速度、覆盖范围等因素，对单日轨迹进行筛选预处理
-                if (cntTuple - cntTuplePrev >= 15):  # 如果单日轨迹点超过20个，才纳入考虑范围
+                if (cntTuple - cntTuplePrev >= 10):  # 如果单日轨迹点超过20个，才纳入考虑范围
                     listPerDay = gpsPtsPerUser[cntTuplePrev:cntTuple]
                     #cntTuplePrev = cntTuple
                     gpsAT = gat.gpsAnalyzeTools(listPerDay) # 实例化一个 轨迹分析 对象
                     gpsAT.filterRangeBeijing()
-                    if (len(gpsAT.selectedPts) >= 5): # 15
-                        gpsAT.filterSpeed(120,200)
+                    if (len(gpsAT.selectedPts) >= 8): # 15
+                        gpsAT.filterSpeed(120,0.2)
                         gpsAT.filterRangeMin()
 
-                    # Part3. 核心部分：空间、序列聚类，及角度滤波
-                    if ( len(gpsAT.selectedPts) >= 5): # 只关注点数足够的轨迹 10
-                        #self.showTrack(dirTrace, userID, gpxGT, gpsAT.selectedPts, t)
-                        resultCluster = self.spatialCluster(gpsAT.selectedLon,gpsAT.selectedLat)
-                        clstList = self.seqtialCluster(gpsAT.selectedPts,resultCluster)
-                        clstListOut = self.angleFilter(clstList)
+                        # Part3. 核心部分：空间、序列聚类，及角度滤波
+                        if ( len(gpsAT.selectedPts) >= 5): # 只关注点数足够的轨迹 10
+                            #self.showTrack(dirTrace, userID, gpxGT, gpsAT.selectedPts, t)
+                            resultCluster = self.spatialCluster(gpsAT.selectedLon,gpsAT.selectedLat)
+                            clstList = self.seqtialCluster(gpsAT.selectedPts,resultCluster)
+                            clstListOut = self.angleFilter(clstList)
 
-                        # # 输出聚类后的轨迹.gpx
-                        # gpsList = []
-                        # for clst in clstListOut:
-                        #     gpsTmp = clst.ptAll[0][0:8]+'|'+ str(clst.center[0]) + '|' + str(clst.center[1]) +'||'
-                        #     gpsList.append(gpsTmp)
-                        #self.showTrack(dirTrace, userID+'CLST', gpxGT, gpsList, t)
+                            # # 输出聚类后的轨迹.gpx
+                            # gpsList = []
+                            # for clst in clstListOut:
+                            #     gpsTmp = clst.ptAll[0][0:8]+'|'+ str(clst.center[0]) + '|' + str(clst.center[1]) +'||'
+                            #     gpsList.append(gpsTmp)
+                            #self.showTrack(dirTrace, userID+'CLST', gpxGT, gpsList, t)
 
-                        # 这个循环输出的clstListOut 为前级输出，在此添加HMM等后续的代码
-                        for clst in clstListOut:
-                            clst.ptAll = p2c.poi2cate(clst.ptAll,self.dictPoi)
-                            if( clst.hasPoi() ):
-                                clst.ptWithPoi = p2c.poi2cate(clst.ptWithPoi, self.dictPoi)
+                            # 这个循环输出的clstListOut 为前级输出，在此添加HMM等后续的代码
+                            for clst in clstListOut:
+                                # clst.ptAll = PT.poi2cate(clst.ptAll,self.dictPoi)
+                                if( clst.hasPoi() ):
+                                    clst.ptWithPoi = self.mypt.poi2cate(clst.ptWithPoi, self.dictPoi)
 
-                        # 记录用户单日产生的poi，存在一个list中
-                        ptWithPoiDay = self.extractPoiPt(clstListOut)
-                        if(len(ptWithPoiDay)>0):
-                            userPoiAll.append(self.extractPoiPt(clstListOut))
+                            # 记录用户单日产生的poi，存在一个list中
+                            ptWithPoiDay = self.extractPoiPt(clstListOut)
+                            if(len(ptWithPoiDay)>=2): # 只要有两个以上poi点的轨迹
+                                #userPoiAll.append(self.extractPoi(ptWithPoiDay))    # 从gps list中，提取纯poi list
+                                userPoiAll.append(ptWithPoiDay)
 
                     del gpsAT  # 用完就删，下个循环使用时重新实例化
 
                 cntTuplePrev = cntTuple
-            # # 将每个用户的poi点存入文件
-            # if( len(userPoiAll) > 0):
-            #     self.savePoiPtPerUser(userPoiAll, i)
+            # 将每个用户的poi点存入文件
+            if( len(userPoiAll) > 0):
+                self.mypt.savePoiPtPerUser(userPoiAll, i)
 
             allUserPoiPt.append(userPoiAll)
 
@@ -111,7 +118,7 @@ class pointCluster:
     # 空间聚类（DBSCAN）
     # 输入：轨迹点的经纬度坐标，（DBSCAN的参数）
     # 输出：对轨迹点的密度聚类结果 & 聚类结果可视化
-    def spatialCluster(self,lonList,latList,min_points = 2, eps = 0.0018):
+    def spatialCluster(self,lonList,latList,min_points = 2, eps = 0.0018): # 0.0018 = 200 meters
         matLonLat = np.matrix([lonList, latList])
         resultCluster = dbscan(matLonLat, eps, min_points)
         # # 聚类结果可视化，可注释掉
@@ -171,6 +178,15 @@ class pointCluster:
                 poiList.extend(clst.ptWithPoi)
         return poiList
 
+    # 输入含有poi的gps点的list，输出纯poi的list
+    def extractPoi(self,poiPtList):
+        poiList = []
+        for pt in poiPtList:
+            pt = pt.split('|')
+            pois = pt[3].split(',')
+            poiList.append(pois[0])
+        return  poiList
+
     # 将gps轨迹保存至subdir，并调用gpstrackEditor.exe显示轨迹，主要用于聚类代码的调试
     def showTrack(self,dir,userID,gpxGT,ptList,time):
         subdir = dir + '\\' + userID
@@ -178,28 +194,58 @@ class pointCluster:
         procOpen = '\"' + 'C:\Program Files (x86)\GPS Track Editor\GpsTrackEditor.exe' + '\" ' + filepath.name
         subprocess.Popen(procOpen)    # 调用外部可视化软件，将上方路径替换为本地安装GpsTrackEditor的路径即可
 
-    def savePoiPtPerUser(self, clstListList, userNumber):
-        UserPoiPts = os.path.abspath('.') + '\PoiPtPerUser'
-        if (not os.path.exists(UserPoiPts)):
-            os.mkdir(UserPoiPts)
-        # 每个用户文件的路径名称
-        userfilepath = UserPoiPts + '\\' + str(userNumber) + '.npy'
-        np.save(userfilepath, clstListList)
-        return "Save ok!"
+    # 按照可用天数、可用poi点数、访问poi类别数，对用户排序
+    def sortUser(self):
+        cntDayList = []
+        cntPoiList = []
+        cntCateList = []
+        for i in range(1000):
+            cntDayList.append([0,0])
+            cntPoiList.append([0,0])
+            cntCateList.append([0,0])
 
-    def readPoiPtPerUser(self, userNumber, filename=os.path.abspath('.') + '\PoiPtPerUser'):
-        # userNumber 表示用户编号，即1,2,3,4,5....
-        userfilepath = filename + '\\' + str(userNumber) + '.npy'
-        UserPoiPts = np.load(userfilepath)
-        return UserPoiPts
+        for i in range(1000):
+            poiUser = self.mypt.readPoiPtPerUser(i)
+            poiUserChain ,cntPoi = self.mypt.ReadPoiData(i)
+            if( len(poiUser)>0 ): # 先判断是否存在这个用户的记录
+                cntPoiList[i][0] = i # 先打序列标签
+                cntDayList[i][0] = i
+                cntCateList[i][0] = i
+                cntDayList[i][1] += len(poiUser)
+                cntPoiList[i][1] += len(poiUserChain)
+                cntCateList[i][1] = len(set(poiUserChain))
+        sortDay = sorted(cntDayList,key=lambda ele:ele[1],reverse = True)
+        sortPoi = sorted(cntPoiList, key=lambda ele: ele[1],reverse = True)
+        sortCate = sorted(cntCateList, key=lambda ele: ele[1],reverse = True)
+        print sortDay[0:50]
+        print sortPoi[0:50]
+        print sortCate[0:50]
+        csvFile = open("sortResult.csv", "w")
+        writer = csv.writer(csvFile)
+        writer.writerow(['sort by availible days', 'sort by check-in times', 'sort by number of category'])
+        for i in range(50):
+            listTmp = []
+            listTmp.append(sortDay[i])
+            listTmp.append(sortPoi[i])
+            listTmp.append(sortCate[i])
+            writer.writerow(listTmp)
+        csvFile.close()
+        # idxDay = [0]*50
+        # idxPoi = [0]*50
+        # idxCate = [0]*50
+        # for i in range(50):
+        #     idxDay[i] = sortDay[i][0]
+        #     idxPoi[i] = sortPoi[i][0]
+        #     idxCate[i] = sortCate[i][0]
 
 # console
 # import pointCluster
 # PC = pointCluster.pointCluster()
-# allUserPoiPts = PC.main()
+# allUserPoi = PC.main()
 
 pc = pointCluster()
 allUserPoiPts = pc.main()
+# pc.sortUser()
 
 # haspoi = 0
 # cntpoi = 0
