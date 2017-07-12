@@ -177,31 +177,49 @@ class reclassifyDict:
     def __init__(self):
         self.dictReclass = {}
         self.dictReclass = self.reclassDictGene()
-        self.cateName = ['住宅','教育','游览健身','办公','休闲娱乐','医疗','酒店餐饮','交通']  # 共8类，但第一类倾向于抛弃
+        self.cateName = [u'住宅',u'教育',u'游览健身',u'办公',u'休闲娱乐',u'医疗',u'酒店餐饮',u'交通',u'生活服务']  # 共8类，但第一类倾向于抛弃
 
     def reclassDictGene(self):
+        self.dictReclass['10'] = 6  # 美食
+        self.dictReclass['11'] = 3  # 公司
+        self.dictReclass['12'] = 3  # 机构团体
+        self.dictReclass['13'] = 4  # 购物
+        self.dictReclass['14'] = 8  # 生活服务  new
+        self.dictReclass['16'] = 4  # 娱乐休闲
+        self.dictReclass['18'] = 2  # 运动
+        self.dictReclass['19'] = 8  # 汽车      new
+        self.dictReclass['20'] = 5  # 医疗
+        self.dictReclass['21'] = 6  # 酒店
+        self.dictReclass['22'] = 2  # 景点
+        self.dictReclass['23'] = 4  # 文化
+        self.dictReclass['24'] = 1  # 教育学校
+        self.dictReclass['25'] = 8  # 银行金融  new
+        self.dictReclass['2610'] = 7  # 交通地名    new
+        self.dictReclass['2611'] = 8  # 地名地址信息   new
+        self.dictReclass['2612'] = 7  # 道路名
+        self.dictReclass['2613'] = 2  # 地名：自然
+        self.dictReclass['2614'] = 3  # 地名：行政
+        self.dictReclass['2615'] = 8  # 门牌信息    new
+        self.dictReclass['261600'] = 8  # 地名：热点区域  new
+        self.dictReclass['261610'] = 7  # 地名：热点：交通类    new
+        self.dictReclass['261611'] = 8  # 地名：热点：Poi类     new
+        self.dictReclass['261612'] = 3  # 地名：热点：行政
+        self.dictReclass['261613'] = 4  # 地名：热点：商圈
+        self.dictReclass['261699'] = 8  # 地名：热点：其他热点区域  new
+        self.dictReclass['2699'] = 8  # 地名：其他地名地址   new
+        self.dictReclass['27'] = 7  # 基础设施
+        self.dictReclass['2800'] = 0  # 住宅  new
         self.dictReclass['2810'] = 0    # 住宅
-        self.dictReclass['289900'] = 0
-        self.dictReclass['241000'] = 1  # 大学
-        self.dictReclass['22'] = 2       # 景点
-        self.dictReclass['18'] = 2       # 运动
-        self.dictReclass['2613'] = 2    # 地名：自然
         self.dictReclass['281100'] = 3  # 产业园区
         self.dictReclass['281200'] = 3  # 商务楼宇
-        self.dictReclass['261400'] = 3  # 地名：行政
-        self.dictReclass['261212'] = 3  # 地名：热点：行政
-        self.dictReclass['11'] = 3     # 公司
-        self.dictReclass['12'] = 3      # 机构团体
-        self.dictReclass['13'] = 4      # 购物
-        self.dictReclass['16'] = 4      # 娱乐休闲
-        self.dictReclass['23'] = 4      # 文化
-        self.dictReclass['261613'] = 4 # 地名：热点：商圈
-        self.dictReclass['20'] = 5        # 医疗
-        self.dictReclass['21'] = 6      # 酒店
-        self.dictReclass['10'] = 6      # 美食
-        self.dictReclass['27'] = 7      # 基础设施
+        self.dictReclass['2880'] = 0  # 房产小区附属  new
+        self.dictReclass['289900'] = 0
+        self.dictReclass['80'] = 8  # 室内及附属设施   new
+        self.dictReclass['99'] = 8  # 其他    new
         return self.dictReclass
 
+    # 输入：poi类别编号
+    # 输出：重新分类后的POI类别编号
     def getIdx(self,key):
         value = -1
         if( self.dictReclass.has_key(key[0:2]) ):
@@ -212,12 +230,11 @@ class reclassifyDict:
             value = self.dictReclass[key]
         return value
 
+    # 输入：重新分类后的类别编号
+    # 输出：类别的汉字名称
     def getName(self,key):
-        value = self.getIdx(key)
-        if(value >=0):
-            return self.cateName[value]
-        else:
-            return []
+        return self.cateName[key]
+
 
 ''' console commands, for debug
 import DictGeneTools
